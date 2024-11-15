@@ -52,22 +52,57 @@ def neighborhood_prediction(training_data,datasets_to_predict,u_min=1,L=nr_movie
     """
 
     # ========================== Create the cosine similarity matrix D ==========================
-    D = 
+    r_bar,bu,bm = train_baseline(training_data)
+    users = training_data[:,0] 
+    movies = training_data[:,1]
+    rating = training_data[:,2]
+    r_tilde = np.zeros((nr_users, nr_movies))
+    R = np.zeros((nr_users, nr_movies))
+    for u,m,r in training_data:
+        r_tilde[u][m] = r - np.clip(r_bar+bu[u]+bm[m],lower_bound,upper_bound)
+        R[u][m] = True
 
+    
+    D = np.zeros((nr_movies, nr_movies))
+    for i in range(nr_movies):
+        for j in range(i,nr_movies):
+            u = np.nonzero(np.logical_and((R[:,i]),(R[:,j])))
+            if i == j:
+                D[i][j] = 1
+            elif u[0].size < u_min:
+                D[i][j] = 0
+            else:
+                num = np.multiply(r_tilde[:,i], r_tilde[:,j])
+                den = np.linalg.norm(r_tilde[:,i][u]) * np.linalg.norm(r_tilde[:,j][u])
+                D[i][j] = np.sum(num) / den
+            D[j][i] = D[i][j] 
 
     # Uncomment the following lines to check the correctness of the D matrix for u_min = 20 in the verification dataset
     # You should get an error that is less than 1e-5
-    #
-    # if filename == "verification" and u_min == 20:
-    #     error_in_D = np.linalg.norm(np.load('verification_D_mat.npy') - D)
-    #     print("Error in D matrix: {0:.5f}\n".format(error_in_D))
+    # print(np.load('verification_D_mat.npy'))
+    if filename == "verification" and u_min == 20:
+        error_in_D = np.linalg.norm(np.load('verification_D_mat.npy') - D)
+        print("Error in D matrix: {0:.5f}\n".format(error_in_D))
 
     # =================== Evaluate the performance of the improved predictor ====================
     r_hats = []
     for data in datasets_to_predict:
-        r_hat = 0
-        r_hats.append(r_hat)
+        r_hat = np.zeros(len(data)) 
 
+        for idx, (u,i,_) in enumerate(data):
+            # Sort by similiarity for movie i and remove itself
+            L_set = np.argsort(D[i])[::-1][:L]
+            # Calculate the extra weight
+            num = 0
+            den = 0
+            for j in L_set:
+                if D[i][j] !=0 or R[u][j]!=0:
+                    num += D[i][j]*r_tilde[u][j]
+                    den += abs(D[i][j])
+            weight = num / den if den != 0 else 0
+            r_hat[idx] = np.clip((r_bar + bu[u] + bm[i]) + weight, lower_bound, upper_bound)
+
+        r_hats.append(r_hat)
     return r_hats
 
 
