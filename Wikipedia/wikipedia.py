@@ -18,9 +18,8 @@ Create a adjacency matrix given the edges and nr of nodes
 """
 def getA(edges, n):
     A = np.zeros((n, n))
-    edges -= 1
     for (i, j) in edges:
-        A[j][i] = 1
+        A[j-1][i-1] = 1
     print(A.shape)
     return A
 
