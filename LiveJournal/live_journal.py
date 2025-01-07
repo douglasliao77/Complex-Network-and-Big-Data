@@ -10,7 +10,7 @@ S = 100000
 G, h = genLiveJournal()
 # G, h = genmod10star()
 """
-Returns the average degree for graph G 
+Returns the true average degree for graph G 
 """
 def exact_average(G, h):
     N = G.GetNodes() 
@@ -20,6 +20,41 @@ def exact_average(G, h):
         res += h[n]
 
     return res / N
+
+"""
+Returns the true random_connection for graph G 
+"""
+def exact_random_connection(G, h):
+    N = G.GetNodes() 
+    res = 0
+    for NI in G.Nodes():
+        n = NI.GetId()
+        x = h[n]
+        tmp = 0
+        for NId in range(NI.GetDeg()):
+            n_prime = G.GetNI(NI.GetNbrNId(NId))
+            k_prime = n_prime.GetDeg()
+            tmp += (1 / k_prime) 
+        
+        res += tmp*x
+
+    return res / N
+
+
+"""
+Returns the true uniform random walk for graph G 
+"""
+def exact_uniform_rnd_walk(G, h):
+    M = G.GetEdges()
+    N = G.GetNodes() 
+    res = 0
+    for NI in G.Nodes():
+        n = NI.GetId()
+        k = NI.GetDeg()
+        x = h[n]
+        res += k*x
+
+    return res / (2*M) 
 
 """
 Return Uniform sampling S_n/S = 1/N when S-> ∞
@@ -55,6 +90,7 @@ def uniform_rnd_walk(G, h, seed=1234):
     # Random starting node
     NId = G.GetRndNId(rnd) 
     n_prime = G.GetNI(NId)
+
     # Ensure steady state
     try:
         for _ in range(S):
@@ -99,6 +135,8 @@ def MH_rnd_walk(G, h, seed):
 if __name__ == "__main__": 
     print("-- expected values of <x>-hat -----")
     print(f"expected average: {exact_average(G,h)}")
+    print(f"random connection of random node: {exact_random_connection(G,h):.3f} ")
+    print(f"uniform random walk: {exact_uniform_rnd_walk(G, h):.3f}")
     print("---estimated <x> -----")
 
     for i in range(5):
